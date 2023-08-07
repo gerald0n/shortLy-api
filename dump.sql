@@ -74,6 +74,11 @@ CREATE TABLE public.users (
     "createdAt" timestamp without time zone DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    
+)
+
 
 --
 -- TOC entry 214 (class 1259 OID 16935)
