@@ -1,6 +1,9 @@
 import { nanoid } from 'nanoid'
 import jwt from 'jsonwebtoken'
 import { db } from '../database/db.database.js'
+import dotenv from 'dotenv'
+
+dotenv.config();
 
 export const newURLshortened = async (req, res) => {
    const { url } = req.body
