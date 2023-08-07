@@ -32,7 +32,7 @@ export const signIn = async (req, res) => {
       if (user.rowCount === 0 || bcrypt.compareSync(password, user.rows[0].password) === false)
          return res.status(401).send('E-mail ou Senha inválidos!')
 
-      const token = jwt.sign({ email }, process.env.SECRET_KEY, { expiresIn: '1y', subject: '1' })
+      const token = jwt.sign({ email }, 'skljaksdj9983498327453lsldkjf', { expiresIn: '1y', subject: '1' })
 
       res.status(200).send({ token })
    } catch (error) {
