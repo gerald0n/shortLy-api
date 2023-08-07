@@ -9,14 +9,12 @@ export const newURLshortened = async (req, res) => {
       const { authorization } = req.headers
       const token = authorization?.replace('Bearer', '').trim()
 
-      const regexToken = /^Bearer\s[0-9A-Za-z-_=]+\.[0-9A-Za-z-_=]+\.?[0-9A-Za-z-_.+/=]*$/;
+      const regexToken = /^Bearer\s[0-9A-Za-z-_=]+\.[0-9A-Za-z-_=]+\.?[0-9A-Za-z-_.+/=]*$/
       if (!token || !regexToken.test(authorization)) {
-        return res.sendStatus(401);
+         return res.sendStatus(401)
       }
 
       const shortUrl = nanoid(10)
-
-      if (!token) return res.sendStatus(401)
 
       const user = await db.query(`SELECT * FROM users WHERE email = $1`, [
          jwt.verify(token, 'skljaksdj9983498327453lsldkjf').email
@@ -116,10 +114,44 @@ export const getDataUser = async (req, res) => {
 
       if (!token) return res.sendStatus(401)
 
-      const user = await db.query(`SELECT * FROM users WHERE email = $1`, [
+      const user = await db.query(`SELECT id, name FROM users WHERE email = $1`, [
          jwt.verify(token, 'skljaksdj9983498327453lsldkjf').email
       ])
 
+      const query = `
+      SELECT 
+        users.id AS "userId",
+        users.name,
+        SUM(url."visitCount") AS "visitCount",
+        url.id AS "urlId",
+        url."shortUrl",
+        url.url,
+        url."visitCount" AS "urlVisitCount"
+      FROM users
+      LEFT JOIN urls url ON users.id = url."idUser"
+      WHERE users.id = $1
+      GROUP BY users.id, users.name, url.id
+    `
+
+      const { rows } = await db.query(query, [user.rows[0].id])
+
+      if (rows.length === 0) {
+         return res.sendStatus(404)
+      }
+
+      const output = {
+         id: rows[0].userId,
+         name: rows[0].name,
+         visitCount: rows.reduce((total, row) => Number(total) + Number(row.visitCount), 0),
+         shortenedUrls: rows.map((row) => ({
+            id: row.urlId,
+            shortUrl: row.shortUrl,
+            url: row.url,
+            visitCount: row.urlVisitCount
+         }))
+      }
+
+      res.status(200).send(output)
    } catch (error) {
       res.status(500).send(error)
    }
