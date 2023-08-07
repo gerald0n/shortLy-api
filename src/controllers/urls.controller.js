@@ -17,7 +17,7 @@ export const newURLshortened = async (req, res) => {
       const shortUrl = nanoid(10)
 
       const user = await db.query(`SELECT * FROM users WHERE email = $1`, [
-         jwt.verify(token, process.env.SECRET_KEY).email
+         jwt.verify(token, 'skljaksdj9983498327453lsldkjf').email
       ])
 
       if (user.rowCount === 0) return res.sendStatus(401)
@@ -88,7 +88,7 @@ export const deleteShortenedURL = async (req, res) => {
       if (!token) return res.sendStatus(401)
 
       const user = await db.query(`SELECT * FROM users WHERE email = $1`, [
-         jwt.verify(token, process.env.SECRET_KEY).email
+         jwt.verify(token, 'skljaksdj9983498327453lsldkjf').email
       ])
 
       if (user.rowCount === 0) return res.sendStatus(401)
@@ -118,7 +118,7 @@ export const getDataUser = async (req, res) => {
       }
 
       const user = await db.query(`SELECT id, name FROM users WHERE email = $1`, [
-         jwt.verify(token, process.env.SECRET_KEY).email
+         jwt.verify(token, 'skljaksdj9983498327453lsldkjf').email
       ])
 
       const { rows } = await db.query(
