@@ -49,36 +49,56 @@ export const newURLshortened = async (req, res) => {
 export const getShortenedURLWhyID = async (req, res) => {
    const { id } = req.params
 
-   //buscar URL por ID...
-   //se não existir? res.sendStatus(404)
-   //se existir? res.status(200).send(objeto da URL com id, url e shortenedURL)
+   const shortUrl = await db.query(`SELECT * FROM urls WHERE id = $1`, [id])
+
+   if (shortUrl.rowCount === 0) return res.sendStatus(404)
+
+   delete shortUrl.rows[0].idUser
+   delete shortUrl.rows[0].visitCount
+   delete shortUrl.rows[0].createdAt
+
+   res.status(200).send(...shortUrl.rows)
 }
 
 export const openShortenedURL = async (req, res) => {
    const { shortUrl } = req.params
 
-   //procurar no banco se existe uma URL que seja igual à shortUrl passada no params;
-   //se existir? res.redirect('URL completa')
-   //se não existir? res.statusCode(404)
+   const URL = await db.query(`SELECT * FROM urls WHERE "shortUrl" = $1`, [shortUrl])
+
+   if (URL.rowCount === 0) return res.sendStatus(404)
+
+   await db.query(`UPDATE urls SET "visitCount" = $1 WHERE "shortUrl" = $2`, [
+      URL.rows[0].visitCount + 1,
+      shortUrl
+   ])
+
+   res.redirect(URL.rows[0].url)
 }
 
 export const deleteShortenedURL = async (req, res) => {
    const { id } = req.params
 
    try {
-      const { authorization } = req.header
-      const token = authorization?.replace('Bearer', '')
+      const { authorization } = req.headers
+      const token = authorization?.replace('Bearer', '').trim()
 
-      if (token) return res.sendStatus(401)
+      if (!token) return res.sendStatus(401)
 
-      //verificar se tem alguma URL encurtada com o ID informado...
-      //se não tiver? res.status(401).send('O ID informado não pertence a nenhuma URL.')
-      //se tiver? segue...
+      const user = await db.query(`SELECT * FROM users WHERE email = $1`, [
+         jwt.verify(token, process.env.SECRET_KEY).email
+      ])
 
-      //verificar se o ID da URL verificada é igual o ID do user que está solicitando // APÓS A CRIAÇÃO DE UM NOVO TOKEN, ENVIAR TOKEN GERADO COMO ID DO USUÁRIO
+      if (user.rowCount === 0) return res.sendStatus(401)
 
-      //se não for igual? res.status(401).send("Não autorizado!")
-      //se for igual? deletar URL do banco // DELETE e res.sendStatus(200)
+      const shortUrl = await db.query(`SELECT * FROM urls WHERE id = $1`, [id])
+
+      if (shortUrl.rowCount === 0) return res.status(404).send('URL inexistente!')
+
+      if (user.rows[0].id !== shortUrl.rows[0].idUser) return res.sendStatus(401)
+
+      await db.query(`DELETE FROM urls WHERE id = $1`, [shortUrl.rows[0].id])
+
+      res.status(204).send('shortUrl deletada!')
    } catch (error) {
       res.status(500).send(error)
    }
@@ -86,23 +106,15 @@ export const deleteShortenedURL = async (req, res) => {
 
 export const getDataUser = async (req, res) => {
    try {
-      const { authorization } = req.header
-      const token = authorization?.replace('Bearer', '')
+      const { authorization } = req.headers
+      const token = authorization?.replace('Bearer', '').trim()
 
       if (!token) return res.sendStatus(401)
 
-      // TOKEN é o ID do usuário
+      const user = await db.query(`SELECT * FROM users WHERE email = $1`, [
+         jwt.verify(token, process.env.SECRET_KEY).email
+      ])
 
-      //pesquisar no banco pelo TOKEN e retornar os dados atrelados a ele...
-      // DADOS:
-      // ID do usuário,
-      // name
-      // contador de visitas: essa é a soma de views de todas as URLs do user
-
-      // URLS:
-      // id, shortURL, URL original, visitCount
-
-      //se tudo der certo? res.status(200).send(todo o conteúdo mencionado acima)
    } catch (error) {
       res.status(500).send(error)
    }
