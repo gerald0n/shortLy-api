@@ -9,6 +9,11 @@ export const newURLshortened = async (req, res) => {
       const { authorization } = req.headers
       const token = authorization?.replace('Bearer', '').trim()
 
+      const regexToken = /^Bearer\s[0-9A-Za-z-_=]+\.[0-9A-Za-z-_=]+\.?[0-9A-Za-z-_.+/=]*$/;
+      if (!token || !regexToken.test(authorization)) {
+        return res.sendStatus(401);
+      }
+
       const shortUrl = nanoid(10)
 
       if (!token) return res.sendStatus(401)
