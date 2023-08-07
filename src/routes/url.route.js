@@ -6,7 +6,8 @@ import {
    getShortenedURLWhyID,
    openShortenedURL,
    deleteShortenedURL,
-   getDataUser
+   getDataUser,
+   getRanking
 } from '../controllers/urls.controller.js'
 
 export const urlRouter = Router()
@@ -20,3 +21,5 @@ urlRouter.get('/urls/open/:shortUrl', openShortenedURL)
 urlRouter.delete('/urls/:id', deleteShortenedURL)
 
 urlRouter.get('/users/me', getDataUser)
+
+urlRouter.get('/ranking', getRanking)

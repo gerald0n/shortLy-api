@@ -112,34 +112,38 @@ export const getDataUser = async (req, res) => {
       const { authorization } = req.headers
       const token = authorization?.replace('Bearer', '').trim()
 
-      if (!token) return res.sendStatus(401)
+      const regexToken = /^Bearer\s[0-9A-Za-z-_=]+\.[0-9A-Za-z-_=]+\.?[0-9A-Za-z-_.+/=]*$/
+      if (!token || !regexToken.test(authorization)) {
+         return res.sendStatus(401)
+      }
 
       const user = await db.query(`SELECT id, name FROM users WHERE email = $1`, [
          jwt.verify(token, 'skljaksdj9983498327453lsldkjf').email
       ])
 
-      const query = `
+      const { rows } = await db.query(
+         `
       SELECT 
-        users.id AS "userId",
-        users.name,
-        SUM(url."visitCount") AS "visitCount",
-        url.id AS "urlId",
-        url."shortUrl",
-        url.url,
-        url."visitCount" AS "urlVisitCount"
+      users.id AS "userId",
+      users.name,
+      SUM(url."visitCount") AS "visitCount",
+      url.id AS "urlId",
+      url."shortUrl",
+      url.url,
+      url."visitCount" AS "urlVisitCount"
       FROM users
       LEFT JOIN urls url ON users.id = url."idUser"
       WHERE users.id = $1
       GROUP BY users.id, users.name, url.id
-    `
-
-      const { rows } = await db.query(query, [user.rows[0].id])
+      `,
+         [user.rows[0].id]
+      )
 
       if (rows.length === 0) {
          return res.sendStatus(404)
       }
 
-      const output = {
+      res.status(200).send({
          id: rows[0].userId,
          name: rows[0].name,
          visitCount: rows.reduce((total, row) => Number(total) + Number(row.visitCount), 0),
@@ -149,15 +153,40 @@ export const getDataUser = async (req, res) => {
             url: row.url,
             visitCount: row.urlVisitCount
          }))
-      }
-
-      res.status(200).send(output)
+      })
    } catch (error) {
       res.status(500).send(error)
    }
 }
 
 export const getRanking = async (req, res) => {
-   //retornar do banco todas as URLs encurtadas e ordenadas por número de views em seus links
-   // mostrar apenas os 10 primeiros
+   const { rows } = await db.query(`
+      SELECT
+        users.id AS "id",
+        users.name AS "name",
+        COALESCE(links_count.count, 0) AS "linksCount",
+        COALESCE(visit_count.count, 0) AS "visitCount"
+      FROM users
+      LEFT JOIN (
+        SELECT "idUser", COUNT(*) AS count
+        FROM urls
+        GROUP BY "idUser"
+      ) links_count ON users.id = links_count."idUser"
+      LEFT JOIN (
+        SELECT "idUser", SUM("visitCount") AS count
+        FROM urls
+        GROUP BY "idUser"
+      ) visit_count ON users.id = visit_count."idUser"
+      ORDER BY COALESCE(visit_count.count, 0) DESC
+      LIMIT 10;
+      `)
+
+   const out = rows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      linksCount: row.linksCount,
+      visitCount: row.visitCount
+   }))
+
+   res.status(200).send(out)
 }
